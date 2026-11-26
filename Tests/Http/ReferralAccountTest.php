@@ -302,7 +302,9 @@ final class ReferralAccountTest extends WebIntegrationTestCase
         $text = preg_replace('/\s+/u', ' ', trim($crawler->filter('[data-testid="referral-welcome"]')->text()));
         self::assertStringContainsString('Bienvenue ! Votre remise de parrainage', (string) $text);
         self::assertStringContainsString('de réduction sur votre première commande dès', (string) $text);
-        self::assertStringContainsString('valable jusqu', (string) $text);
+        self::assertStringContainsString('valable jusqu\'au', (string) $text);
+        self::assertStringNotContainsString('&#039;', (string) $text, 'the apostrophe is escaped once');
+        self::assertStringNotContainsString('&amp;#039;', $crawler->filter('[data-testid="referral-welcome"]')->html(), 'the apostrophe is escaped once');
     }
 
     public function testTheRefereeListCostsOneQueryWhateverItsLength(): void
