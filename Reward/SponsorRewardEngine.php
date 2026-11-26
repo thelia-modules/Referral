@@ -88,6 +88,7 @@ final readonly class SponsorRewardEngine
         $connection = Propel::getWriteConnection(ReferralTableMap::DATABASE_NAME);
         $connection->beginTransaction();
 
+        $referral = null;
         try {
             $sponsorCodeActivity = null === $sponsorCustomerId
                 ? self::NO_REFERRAL_CODE
@@ -117,7 +118,8 @@ final readonly class SponsorRewardEngine
             return null;
         } catch (\Throwable $exception) {
             $connection->rollBack();
-            Tlog::getInstance()->error('Referral: the review of referral #'.$referralId.' failed ('.$exception::class.': '.$exception->getMessage().')');
+            // The transaction is undone, the referral stays registered: the next status change of an order retries.
+            Tlog::getInstance()->error('Referral: the review of referral #'.$referralId.' failed, order #'.($referral?->getTriggerOrderId() ?? 'unknown').' ('.$exception::class.': '.$exception->getMessage().')');
 
             return null;
         }

@@ -23,8 +23,12 @@ use Referral\Model\ReferralRewardQuery;
 use Referral\Referral;
 use Referral\Reward\RewardCanceller;
 use Referral\Reward\RewardFactory;
+use Referral\Reward\RewardIssuerInterface;
 use Referral\Reward\SponsorRewardEngine;
+use Referral\Service\ReferralClock;
 use Referral\Service\ReferralCodeProvider;
+use Referral\Service\ReferralSettings;
+use Referral\Service\SameAddressDetector;
 use Symfony\Component\Mime\Address;
 use Symfony\Component\Mime\Email;
 use Symfony\Component\Mime\RawMessage;
@@ -130,6 +134,52 @@ final class SponsorRewardTest extends ActionIntegrationTestCase
         self::assertSame(1, $this->sponsorRewardsOf($sponsor));
         self::assertSame('rewarded', $this->reread($referral)->getStatus());
         self::assertSame($second->getId(), $this->reread($referral)->getTriggerOrderId());
+    }
+
+    public function testAnIssuerThatFailsLeavesTheReferralRegisteredAndTheNextStatusChangeRetries(): void
+    {
+        [$sponsor] = $this->sponsorWithCode();
+        [$referee, $referral] = $this->refereeOf($sponsor);
+        $order = $this->factory->order($referee);
+        $paid = OrderStatusQuery::create()->findOneByCode(OrderStatus::CODE_PAID);
+        self::assertInstanceOf(OrderStatus::class, $paid);
+        // Paid without any event: the review below is the first one to see it.
+        $order->setStatusId($paid->getId())->save();
+
+        $failingIssuer = new class() implements RewardIssuerInterface {
+            public function supports(string $rewardType): bool
+            {
+                return true;
+            }
+
+            public function issue(ReferralReward $reward, Customer $beneficiary): void
+            {
+                throw new \RuntimeException('the coupon could not be created');
+            }
+
+            public function revoke(ReferralReward $reward): void
+            {
+            }
+        };
+        $engine = new SponsorRewardEngine(
+            $this->getService(ReferralSettings::class),
+            $this->getService(RewardFactory::class),
+            $this->getService(RewardCanceller::class),
+            $this->getService(SameAddressDetector::class),
+            $this->getService(ReferralClock::class),
+            [$failingIssuer],
+        );
+
+        self::assertNull($engine->review($referral->getId(), $sponsor->getId()));
+        self::assertSame('registered', $this->reread($referral)->getStatus());
+        self::assertSame(0, $this->sponsorRewardsOf($sponsor));
+
+        // The order goes on: paid, then processing. The listener of the shop has a working issuer.
+        $this->moveTo($order, OrderStatus::CODE_PROCESSING);
+
+        self::assertSame('rewarded', $this->reread($referral)->getStatus());
+        self::assertSame(1, $this->sponsorRewardsOf($sponsor));
+        self::assertSame($order->getId(), $this->reread($referral)->getTriggerOrderId());
     }
 
     public function testACancelledFirstOrderLetsTheNextOneTrigger(): void
