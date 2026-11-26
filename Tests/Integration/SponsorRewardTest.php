@@ -118,7 +118,7 @@ final class SponsorRewardTest extends ActionIntegrationTestCase
         self::assertCount(1, $this->mailsTo((string) $sponsor->getEmail()));
     }
 
-    public function testAPendingFirstOrderBlocksAPaidSecondOrder(): void
+    public function testANeverPaidFirstOrderDoesNotBlockAPaidSecondOrder(): void
     {
         [$sponsor] = $this->sponsorWithCode();
         [$referee, $referral] = $this->refereeOf($sponsor);
@@ -127,8 +127,9 @@ final class SponsorRewardTest extends ActionIntegrationTestCase
 
         $this->moveTo($second, OrderStatus::CODE_PAID);
 
-        self::assertSame(0, $this->sponsorRewardsOf($sponsor));
-        self::assertSame('registered', $this->reread($referral)->getStatus());
+        self::assertSame(1, $this->sponsorRewardsOf($sponsor));
+        self::assertSame('rewarded', $this->reread($referral)->getStatus());
+        self::assertSame($second->getId(), $this->reread($referral)->getTriggerOrderId());
     }
 
     public function testACancelledFirstOrderLetsTheNextOneTrigger(): void

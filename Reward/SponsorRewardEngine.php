@@ -155,8 +155,8 @@ final readonly class SponsorRewardEngine
             return null;
         }
 
-        $firstOrder = $this->firstOrderOf($referral->getRefereeCustomerId(), $connection);
-        if (null === $firstOrder || !$this->validatesTheReferral($firstOrder['status'])) {
+        $firstOrder = $this->firstValidatingOrderOf($referral->getRefereeCustomerId(), $connection);
+        if (null === $firstOrder) {
             return null;
         }
 
@@ -232,12 +232,13 @@ final readonly class SponsorRewardEngine
     }
 
     /**
-     * The referee's first order is their earliest one that was neither cancelled nor refunded: when
-     * it is cancelled, the next one takes its place. Read as rows, never from the instance pool.
+     * The referee's earliest order that reached the validating state of the trigger. An order that never
+     * reached it (payment failed, abandoned, still pending) and a cancelled or refunded one are ignored:
+     * they neither trigger nor block the order that follows. Read as rows, never from the instance pool.
      *
-     * @return array{id: int, status: OrderStatus}|null
+     * @return array{id: int}|null
      */
-    private function firstOrderOf(int $refereeCustomerId, ConnectionInterface $connection): ?array
+    private function firstValidatingOrderOf(int $refereeCustomerId, ConnectionInterface $connection): ?array
     {
         /** @var list<array{Id: int|string, StatusId: int|string|null}> $orders */
         $orders = OrderQuery::create()
@@ -249,11 +250,9 @@ final readonly class SponsorRewardEngine
 
         foreach ($orders as $order) {
             $status = null === $order['StatusId'] ? null : OrderStatusQuery::create()->findPk((int) $order['StatusId'], $connection);
-            if (!$status instanceof OrderStatus || $status->isCancelled() || $status->isRefunded()) {
-                continue;
+            if ($status instanceof OrderStatus && !$status->isCancelled() && !$status->isRefunded() && $this->validatesTheReferral($status)) {
+                return ['id' => (int) $order['Id']];
             }
-
-            return ['id' => (int) $order['Id'], 'status' => $status];
         }
 
         return null;

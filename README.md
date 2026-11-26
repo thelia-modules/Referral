@@ -37,9 +37,11 @@ coupon validity at least 1 day, the trigger status `paid` or `sent`. An invalid 
 ## Sponsor reward
 
 Each status change of a referee's order (back office, API, payment module) reviews the referral. The
-referee's first order is their earliest order that is neither cancelled nor refunded. When it reaches the
-trigger status (`paid` counts paid, processing and sent; `sent` counts sent only), the sponsor gets a
-personal coupon and the `referral_sponsor_reward` email. A later order never rewards again.
+sponsor is rewarded for the referee's first order that reaches the trigger status (`paid` counts paid,
+processing and sent; `sent` counts sent only): an order that never reached it (failed payment, abandoned,
+still pending) or that was cancelled or refunded is ignored and does not block the next one. The sponsor then
+gets a personal coupon and the `referral_sponsor_reward` email. One reward per referral at most: a later order
+never rewards again.
 
 | Referral status | Reason | Meaning |
 |-----------------|--------|---------|
