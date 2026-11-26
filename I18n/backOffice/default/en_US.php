@@ -37,7 +37,7 @@ return [
     'Waiting for the first order' => 'Waiting for the first order',
     'Rewarded' => 'Rewarded',
     'Capped' => 'Capped',
-    'Monthly limit of %count% rewards reached for this sponsor' => 'Monthly limit of %count% rewards reached for this sponsor',
+    'Monthly limit reached for this sponsor (%count% per month)' => 'Monthly limit reached for this sponsor (%count% per month)',
     'The sponsor\'s account was deleted' => 'The sponsor\'s account was deleted',
     'The sponsor\'s code is inactive' => 'The sponsor\'s code is inactive',
     'Delivered to one of the sponsor\'s addresses' => 'Delivered to one of the sponsor\'s addresses',
@@ -70,4 +70,9 @@ return [
     'Fixed amount' => 'Fixed amount',
     'Percentage' => 'Percentage',
     'A percentage cannot exceed 100.' => 'A percentage cannot exceed 100.',
+    'This value should not be blank.' => 'This value should not be blank.',
+    'This value should be 1 or more.' => 'This value should be 1 or more.',
+    'This value should be 0 or more.' => 'This value should be 0 or more.',
+    'This value should be greater than 0.' => 'This value should be greater than 0.',
+    'This value is not a valid choice.' => 'This value is not a valid choice.',
 ];

@@ -37,7 +37,7 @@ return [
     'Waiting for the first order' => 'En attente de la première commande',
     'Rewarded' => 'Récompensé',
     'Capped' => 'Plafonné',
-    'Monthly limit of %count% rewards reached for this sponsor' => 'Limite mensuelle de %count% récompenses atteinte pour ce parrain',
+    'Monthly limit reached for this sponsor (%count% per month)' => 'Limite mensuelle atteinte pour ce parrain (%count% par mois)',
     'The sponsor\'s account was deleted' => 'Le compte du parrain a été supprimé',
     'The sponsor\'s code is inactive' => 'Le code du parrain est inactif',
     'Delivered to one of the sponsor\'s addresses' => 'Livré à une adresse du parrain',
@@ -70,4 +70,9 @@ return [
     'Fixed amount' => 'Montant fixe',
     'Percentage' => 'Pourcentage',
     'A percentage cannot exceed 100.' => 'Un pourcentage ne peut pas dépasser 100.',
+    'This value should not be blank.' => 'Cette valeur ne doit pas être vide.',
+    'This value should be 1 or more.' => 'Cette valeur doit être 1 ou plus.',
+    'This value should be 0 or more.' => 'Cette valeur doit être 0 ou plus.',
+    'This value should be greater than 0.' => 'Cette valeur doit être supérieure à 0.',
+    'This value is not a valid choice.' => 'Cette valeur n\'est pas un choix valide.',
 ];

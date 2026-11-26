@@ -62,7 +62,7 @@
 						<tr data-testid="referral-row" data-referral-id="{{ row.id }}" data-status="{{ row.status }}">
 							<td>{{ _self.customer(row.sponsor_customer_id, row.sponsor_firstname, row.sponsor_lastname) }}</td>
 							<td>{{ _self.customer(row.referee_customer_id, row.referee_firstname, row.referee_lastname) }}</td>
-							<td>{{ row.created_at ? row.created_at|date('Y-m-d H:i') : '' }}</td>
+							<td>{{ row.created_at ? row.created_at|format_datetime('medium', 'short') : '' }}</td>
 							<td>
 								<span class="badge text-bg-{{ {'rewarded': 'success', 'registered': 'secondary', 'capped': 'warning', 'cancelled': 'danger'}[row.status] ?? 'secondary' }}" data-testid="referral-status">{{ _self.statusLabel(row.status) }}</span>
 								{% if row.status_reason %}
@@ -122,7 +122,7 @@
 {% endmacro %}
 
 {% macro reasonLabel(code, cap) %}
-	{%- if code == 'monthly_cap' %}{{ 'Monthly limit of %count% rewards reached for this sponsor'|trans({'%count%': cap}, 'referral.bo.default') }}
+	{%- if code == 'monthly_cap' %}{{ 'Monthly limit reached for this sponsor (%count% per month)'|trans({'%count%': cap}, 'referral.bo.default') }}
 	{%- elseif code == 'sponsor_gone' %}{{ 'The sponsor\'s account was deleted'|trans({}, 'referral.bo.default') }}
 	{%- elseif code == 'sponsor_inactive' %}{{ 'The sponsor\'s code is inactive'|trans({}, 'referral.bo.default') }}
 	{%- elseif code == 'same_address' %}{{ 'Delivered to one of the sponsor\'s addresses'|trans({}, 'referral.bo.default') }}

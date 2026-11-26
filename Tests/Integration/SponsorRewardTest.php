@@ -39,6 +39,7 @@ use Thelia\Domain\Promotion\Coupon\CouponFactory;
 use Thelia\Model\ConfigQuery;
 use Thelia\Model\CouponQuery;
 use Thelia\Model\Customer;
+use Thelia\Model\LangQuery;
 use Thelia\Model\Order;
 use Thelia\Model\OrderStatus;
 use Thelia\Model\OrderStatusQuery;
@@ -104,6 +105,27 @@ final class SponsorRewardTest extends ActionIntegrationTestCase
         self::assertStringContainsString((string) $reward->getCouponCode(), (string) $mails[0]->getTextBody());
         foreach ($this->mailsTo((string) $referee->getEmail()) as $mailToTheReferee) {
             self::assertStringNotContainsString((string) $reward->getCouponCode(), (string) $mailToTheReferee->getTextBody(), 'the payment mail of the referee only');
+        }
+    }
+
+    public function testTheExpiryDateOfTheRewardMailFollowsTheLanguageOfTheSponsor(): void
+    {
+        [$sponsor] = $this->sponsorWithCode();
+        $french = LangQuery::create()->findOneByLocale('fr_FR');
+        self::assertNotNull($french);
+        $sponsor->setLangId($french->getId())->save();
+        [$referee, $referral] = $this->refereeOf($sponsor);
+
+        $this->moveTo($this->factory->order($referee), OrderStatus::CODE_PAID);
+
+        $reward = ReferralRewardQuery::create()->filterByReferralId($referral->getId())->filterByBeneficiary('sponsor')->findOne();
+        self::assertInstanceOf(ReferralReward::class, $reward);
+        $expiry = CouponQuery::create()->findPk((int) $reward->getCouponId())?->getExpirationDate();
+        self::assertInstanceOf(\DateTimeInterface::class, $expiry);
+        $mails = $this->mailsTo((string) $sponsor->getEmail());
+        self::assertCount(1, $mails);
+        foreach (['text' => $mails[0]->getTextBody(), 'html' => $mails[0]->getHtmlBody()] as $part => $body) {
+            self::assertStringContainsString('Valable jusqu\'au '.$expiry->format('d/m/Y'), html_entity_decode((string) $body, \ENT_QUOTES), $part);
         }
     }
 
