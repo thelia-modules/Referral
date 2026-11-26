@@ -16,8 +16,8 @@ dropped on deletion when the merchant ticks "Also delete the data created by thi
 ## Settings
 
 Stored in the module configuration; defaults are written on activation only when absent. The merchant edits
-them on the module page (`/admin/module/Referral`): values must be 0 or more, a percentage at most 100, the
-coupon validity at least 1 day, the trigger status `paid` or `sent`. An invalid form writes nothing.
+them on the module page (`/admin/module/Referral`): reward values must be above 0 (a percentage at most 100), minimum
+amounts 0 or more, the coupon validity at least 1 day, the monthly cap 0 or more (0 = unlimited), the trigger status `paid` or `sent`. An invalid form writes nothing.
 
 | Key | Default | Meaning |
 |-----|---------|---------|

@@ -63,7 +63,7 @@ return [
     'Paid (paid, processing or sent)' => 'Paid (paid, processing or sent)',
     'Sent' => 'Sent',
     'The first order of the referee triggers the sponsor reward when it reaches this status.' => 'The first order of the referee triggers the sponsor reward when it reaches this status.',
-    'Rewards per sponsor and per month' => 'Rewards per sponsor and per month',
+    'Rewards per sponsor and per month (0 = unlimited)' => 'Rewards per sponsor and per month (0 = unlimited)',
     'Calendar month. 0 = no limit.' => 'Calendar month. 0 = no limit.',
     'Cancel the rewards when the order that triggered them is cancelled or refunded' => 'Cancel the rewards when the order that triggered them is cancelled or refunded',
     'Refuse the reward when the referee is delivered to one of the sponsor\'s addresses' => 'Refuse the reward when the referee is delivered to one of the sponsor\'s addresses',

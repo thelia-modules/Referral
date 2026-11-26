@@ -23,6 +23,7 @@ use Symfony\Component\Form\Extension\Core\Type\NumberType;
 use Symfony\Component\Validator\Constraints\Callback;
 use Symfony\Component\Validator\Constraints\Choice;
 use Symfony\Component\Validator\Constraints\NotBlank;
+use Symfony\Component\Validator\Constraints\Positive;
 use Symfony\Component\Validator\Constraints\PositiveOrZero;
 use Symfony\Component\Validator\Constraints\Range;
 use Symfony\Component\Validator\Context\ExecutionContextInterface;
@@ -81,7 +82,7 @@ class ReferralSettingsForm extends BaseForm
                 'required' => true,
                 'data' => (int) $settings->get(Referral::CONFIG_MONTHLY_CAP),
                 'constraints' => [new NotBlank(), new PositiveOrZero()],
-                'label' => $this->translate('Rewards per sponsor and per month'),
+                'label' => $this->translate('Rewards per sponsor and per month (0 = unlimited)'),
                 'label_attr' => ['help' => $this->translate('Calendar month. 0 = no limit.')],
             ])
             ->add(Referral::CONFIG_CANCEL_ON_REFUND, CheckboxType::class, [
@@ -141,7 +142,7 @@ class ReferralSettingsForm extends BaseForm
             'data' => (float) $settings->get($name),
             'constraints' => [
                 new NotBlank(),
-                new PositiveOrZero(),
+                new Positive(),
                 new Callback(static function (mixed $value, ExecutionContextInterface $context) use ($typeField, $percentIsTooHigh): void {
                     $root = $context->getRoot();
                     if ($root instanceof \Symfony\Component\Form\FormInterface && 'percent' === $root->get($typeField)->getData() && (float) $value > 100) {

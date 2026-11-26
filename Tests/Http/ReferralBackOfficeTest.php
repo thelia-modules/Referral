@@ -134,6 +134,8 @@ final class ReferralBackOfficeTest extends WebIntegrationTestCase
      */
     public static function invalidSettings(): iterable
     {
+        yield 'zero sponsor value' => [['referral_settings_form[sponsor_value]' => '0']];
+        yield 'zero referee value' => [['referral_settings_form[referee_value]' => '0']];
         yield 'negative value' => [['referral_settings_form[sponsor_value]' => '-1']];
         yield 'percent above 100' => [['referral_settings_form[referee_value_type]' => 'percent', 'referral_settings_form[referee_value]' => '101']];
         yield 'zero validity' => [['referral_settings_form[coupon_validity_days]' => '0']];

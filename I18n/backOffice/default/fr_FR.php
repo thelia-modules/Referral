@@ -63,7 +63,7 @@ return [
     'Paid (paid, processing or sent)' => 'Payée (payée, en traitement ou expédiée)',
     'Sent' => 'Expédiée',
     'The first order of the referee triggers the sponsor reward when it reaches this status.' => 'La première commande du filleul déclenche la récompense du parrain lorsqu\'elle atteint ce statut.',
-    'Rewards per sponsor and per month' => 'Récompenses par parrain et par mois',
+    'Rewards per sponsor and per month (0 = unlimited)' => 'Récompenses par parrain et par mois (0 = illimité)',
     'Calendar month. 0 = no limit.' => 'Mois civil. 0 = pas de limite.',
     'Cancel the rewards when the order that triggered them is cancelled or refunded' => 'Annuler les récompenses quand la commande qui les a déclenchées est annulée ou remboursée',
     'Refuse the reward when the referee is delivered to one of the sponsor\'s addresses' => 'Refuser la récompense quand le filleul est livré à l\'une des adresses du parrain',
