@@ -14,6 +14,7 @@ declare(strict_types=1);
 
 namespace Referral;
 
+use FlexyBundle\AccountMenu\AccountMenuItemProviderInterface;
 use Propel\Runtime\Connection\ConnectionInterface;
 use Referral\DependencyInjection\Compiler\LockedSectionProbeForTestsPass;
 use Referral\DependencyInjection\Compiler\PublicServicesForTestsPass;
@@ -185,7 +186,12 @@ class Referral extends BaseModule
         $servicesConfigurator->instanceof(RewardIssuerInterface::class)->tag('referral.reward_issuer');
 
         $servicesConfigurator->load(self::getModuleCode().'\\', __DIR__)
-            ->exclude([__DIR__.'/I18n/*', __DIR__.'/Tests/*'])
+            ->exclude([
+                __DIR__.'/I18n/*',
+                __DIR__.'/Tests/*',
+                // The account tab belongs to the Flexy theme: without it the interface does not exist and the class could not be loaded.
+                ...(interface_exists(AccountMenuItemProviderInterface::class) ? [] : [__DIR__.'/Account/ReferralAccountMenuItemProvider.php']),
+            ])
             ->autowire(true)
             ->autoconfigure(true);
     }

@@ -1,0 +1,9 @@
+{% macro value(type, value) %}{% if type == 'percent' %}{{ value|format_number(locale: lang_code) }} %{% else %}{{ value|format_currency(current_currency_code(), locale: lang_code) }}{% endif %}{% endmacro %}
+
+{% set discount = _self.value(welcome.valueType, welcome.value) %}
+{% set expiry = welcome.expiresAt|format_date('long', locale: lang_code) %}
+{% set text %}{% if welcome.minimumAmount > 0 %}{{ 'Welcome! Your referral discount %code%: %discount% off your first order from %minimum%, valid until %date%.'|trans({'%code%': welcome.code, '%discount%': discount, '%minimum%': _self.value('amount', welcome.minimumAmount), '%date%': expiry}, 'referral.fo.default') }}{% else %}{{ 'Welcome! Your referral discount %code%: %discount% off your first order, valid until %date%.'|trans({'%code%': welcome.code, '%discount%': discount, '%date%': expiry}, 'referral.fo.default') }}{% endif %}{% endset %}
+
+<div class="container-l pt-6" data-testid="referral-welcome">
+    <twig:Molecules:SnackBar:Base variant="success" :withIcon="true" text="{{ text|e }}" />
+</div>
