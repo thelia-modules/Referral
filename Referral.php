@@ -91,7 +91,19 @@ class Referral extends BaseModule
 
     private static function tablesExist(ConnectionInterface $connection): bool
     {
-        return false !== $connection->query("SHOW TABLES LIKE 'referral_reward'")->fetchColumn();
+        return self::tableExists($connection, 'referral_reward');
+    }
+
+    /**
+     * Counted rather than fetched: the driver answers an empty result with null, false or an empty string
+     * depending on the layer.
+     */
+    public static function tableExists(ConnectionInterface $connection, string $table): bool
+    {
+        $statement = $connection->prepare('SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = :table');
+        $statement->execute(['table' => $table]);
+
+        return (int) $statement->fetchColumn() > 0;
     }
 
     /**
