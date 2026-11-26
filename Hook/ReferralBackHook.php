@@ -17,6 +17,7 @@ namespace Referral\Hook;
 use Referral\Form\ReferralSettingsForm;
 use Referral\Referral;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
+use Symfony\Contracts\Translation\TranslatorInterface;
 use Thelia\Core\Event\Hook\HookRenderBlockEvent;
 use Thelia\Core\Event\Hook\HookRenderEvent;
 use Thelia\Core\Form\TheliaFormFactory;
@@ -25,7 +26,6 @@ use Thelia\Core\Security\AccessManager;
 use Thelia\Core\Security\Resource\AdminResources;
 use Thelia\Core\Security\SecurityContext;
 use Thelia\Core\Template\Parser\ParserResolver;
-use Thelia\Core\Translation\Translator;
 use Thelia\Tools\URL;
 
 /**
@@ -36,6 +36,7 @@ class ReferralBackHook extends BaseHook
     public function __construct(
         private readonly TheliaFormFactory $formFactory,
         private readonly SecurityContext $securityContext,
+        private readonly TranslatorInterface $adminTranslator,
         ?EventDispatcherInterface $dispatcher = null,
         ?ParserResolver $parserResolver = null,
     ) {
@@ -80,7 +81,7 @@ class ReferralBackHook extends BaseHook
             'id' => 'tools_menu_referral',
             'class' => '',
             'url' => URL::getInstance()->absoluteUrl('/admin/module/Referral/referrals'),
-            'title' => Translator::getInstance()->trans('Referrals', [], 'referral.bo.default'),
+            'title' => $this->adminTranslator->trans('Referrals', [], 'referral.bo.default'),
         ]);
     }
 }

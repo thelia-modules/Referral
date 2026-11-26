@@ -15,6 +15,7 @@ declare(strict_types=1);
 namespace Referral\Form;
 
 use Referral\Referral;
+use Referral\Service\BackOfficeTranslation;
 use Referral\Service\ReferralSettings;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
@@ -27,7 +28,6 @@ use Symfony\Component\Validator\Constraints\Positive;
 use Symfony\Component\Validator\Constraints\PositiveOrZero;
 use Symfony\Component\Validator\Constraints\Range;
 use Symfony\Component\Validator\Context\ExecutionContextInterface;
-use Thelia\Core\Translation\Translator;
 use Thelia\Form\BaseForm;
 
 /**
@@ -37,8 +37,6 @@ use Thelia\Form\BaseForm;
  */
 class ReferralSettingsForm extends BaseForm
 {
-    private const DOMAIN = 'referral.bo.default';
-
     public static function getName(): string
     {
         return 'referral_settings_form';
@@ -63,7 +61,7 @@ class ReferralSettingsForm extends BaseForm
             ->add(Referral::CONFIG_COUPON_VALIDITY_DAYS, IntegerType::class, [
                 'required' => true,
                 'data' => (int) $settings->get(Referral::CONFIG_COUPON_VALIDITY_DAYS),
-                'constraints' => [new NotBlank(), new Range(min: 1)],
+                'constraints' => [new NotBlank(message: $this->translate('This value should not be blank.')), new Range(min: 1, notInRangeMessage: $this->translate('This value should be 1 or more.'))],
                 'label' => $this->translate('Coupon validity (days)'),
                 'label_attr' => ['help' => $this->translate('At least 1 day, counted from the moment the coupon is issued.')],
             ])
@@ -74,14 +72,14 @@ class ReferralSettingsForm extends BaseForm
                     $this->translate('Paid (paid, processing or sent)') => 'paid',
                     $this->translate('Sent') => 'sent',
                 ],
-                'constraints' => [new NotBlank(), new Choice(['paid', 'sent'])],
+                'constraints' => [new NotBlank(message: $this->translate('This value should not be blank.')), new Choice(choices: ['paid', 'sent'], message: $this->translate('This value is not a valid choice.'))],
                 'label' => $this->translate('Order status that triggers the rewards'),
                 'label_attr' => ['help' => $this->translate('The first order of the referee triggers the sponsor reward when it reaches this status.')],
             ])
             ->add(Referral::CONFIG_MONTHLY_CAP, IntegerType::class, [
                 'required' => true,
                 'data' => (int) $settings->get(Referral::CONFIG_MONTHLY_CAP),
-                'constraints' => [new NotBlank(), new PositiveOrZero()],
+                'constraints' => [new NotBlank(message: $this->translate('This value should not be blank.')), new PositiveOrZero(message: $this->translate('This value should be 0 or more.'))],
                 'label' => $this->translate('Rewards per sponsor and per month (0 = unlimited)'),
                 'label_attr' => ['help' => $this->translate('Calendar month. 0 = no limit.')],
             ])
@@ -109,7 +107,7 @@ class ReferralSettingsForm extends BaseForm
                 $this->translate('Fixed amount') => 'amount',
                 $this->translate('Percentage') => 'percent',
             ],
-            'constraints' => [new NotBlank(), new Choice(['amount', 'percent'])],
+            'constraints' => [new NotBlank(message: $this->translate('This value should not be blank.')), new Choice(choices: ['amount', 'percent'], message: $this->translate('This value is not a valid choice.'))],
             'label' => $this->translate($label),
         ];
     }
@@ -123,7 +121,7 @@ class ReferralSettingsForm extends BaseForm
             'required' => true,
             'scale' => 2,
             'data' => (float) $settings->get($name),
-            'constraints' => [new NotBlank(), new PositiveOrZero()],
+            'constraints' => [new NotBlank(message: $this->translate('This value should not be blank.')), new PositiveOrZero(message: $this->translate('This value should be 0 or more.'))],
             'label' => $this->translate($label),
             'label_attr' => ['help' => $this->translate($help)],
         ];
@@ -141,8 +139,8 @@ class ReferralSettingsForm extends BaseForm
             'scale' => 2,
             'data' => (float) $settings->get($name),
             'constraints' => [
-                new NotBlank(),
-                new Positive(),
+                new NotBlank(message: $this->translate('This value should not be blank.')),
+                new Positive(message: $this->translate('This value should be greater than 0.')),
                 new Callback(static function (mixed $value, ExecutionContextInterface $context) use ($typeField, $percentIsTooHigh): void {
                     $root = $context->getRoot();
                     if ($root instanceof \Symfony\Component\Form\FormInterface && 'percent' === $root->get($typeField)->getData() && (float) $value > 100) {
@@ -157,6 +155,6 @@ class ReferralSettingsForm extends BaseForm
 
     private function translate(string $identifier): string
     {
-        return Translator::getInstance()->trans($identifier, [], self::DOMAIN);
+        return BackOfficeTranslation::trans($identifier, $this->request);
     }
 }

@@ -20,6 +20,7 @@ use Referral\Model\ReferralRewardQuery;
 use Referral\Referral;
 use Referral\Reward\RewardCanceller;
 use Referral\Reward\SponsorRewardEngine;
+use Referral\Service\BackOfficeTranslation;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -28,7 +29,6 @@ use Symfony\Component\Routing\Attribute\Route;
 use Thelia\Controller\Admin\BaseAdminController;
 use Thelia\Core\Security\AccessManager;
 use Thelia\Core\Security\Resource\AdminResources;
-use Thelia\Core\Translation\Translator;
 use Thelia\Form\Exception\FormValidationException;
 use Thelia\Model\Currency;
 use Thelia\Tools\TokenProvider;
@@ -148,6 +148,6 @@ class ReferralBackOfficeController extends BaseAdminController
             return;
         }
 
-        $session->getFlashBag()->add($type, Translator::getInstance()->trans($message, [], 'referral.bo.default'));
+        $session->getFlashBag()->add($type, BackOfficeTranslation::trans($message, $this->getRequest()));
     }
 }

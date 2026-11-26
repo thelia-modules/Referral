@@ -201,7 +201,7 @@ final class ReferralBackOfficeTest extends WebIntegrationTestCase
         );
 
         self::assertStringContainsString(
-            'Monthly limit of 3 rewards reached for this sponsor',
+            'Monthly limit reached for this sponsor (3 per month)',
             $crawler->filter('[data-referral-id="'.$capped->getId().'"] [data-testid="referral-reason"]')->text(),
         );
         self::assertStringContainsString(
@@ -303,6 +303,42 @@ final class ReferralBackOfficeTest extends WebIntegrationTestCase
         self::assertFalse((bool) CouponQuery::create()->findPk($coupon)?->getIsEnabled());
         $this->client->followRedirect();
         self::assertSame(1, $this->client->getCrawler()->filter('[data-testid="bo-flash-success"]')->count());
+    }
+
+    public function testAFrenchAdministratorGetsTheWholeBackOfficeInFrench(): void
+    {
+        $sponsor = $this->customer('Sponsor', 'Seller');
+        $this->referral($sponsor, 'Capped', 'Friend', 'capped', 'monthly_cap');
+        [$reward] = $this->issuedReward();
+        Referral::setConfigValue(Referral::CONFIG_MONTHLY_CAP, '3');
+        ConfigQuery::resetCache();
+        $this->loginAs($this->factory()->admin());
+
+        $this->client->request('GET', self::CONFIGURATION_URL.'?lang=fr_FR');
+        self::assertResponseIsSuccessful();
+        $labels = $this->client->getCrawler()->filter('#referral-settings-save')->closest('form')?->text() ?? '';
+        self::assertStringContainsString('Type du coupon du filleul', $labels);
+        self::assertStringNotContainsString('Referee coupon type', $labels);
+
+        $form = $this->client->getCrawler()->filter('#referral-settings-save')->form();
+        $this->client->submit($form, ['referral_settings_form[monthly_cap]' => '-1']);
+        $this->client->followRedirect();
+        $error = $this->client->getCrawler()->filter('[data-testid="bo-flash-error"]');
+        self::assertSame(1, $error->count());
+        self::assertStringContainsString('Cette valeur doit être 0 ou plus', $error->text());
+
+        $this->client->request('GET', self::LIST_URL);
+        $page = $this->client->getCrawler();
+        self::assertStringContainsString('Limite mensuelle atteinte pour ce parrain (3 par mois)', $page->filter('[data-testid="referral-reason"]')->text());
+        self::assertDoesNotMatchRegularExpression('/\d{4}-\d{2}-\d{2} \d{2}:\d{2}/', $page->filter('[data-testid="referral-row"]')->first()->text(), 'the date follows the locale of the administrator');
+
+        $this->client->submit($page->filter('[data-reward-id="'.$reward->getId().'"] form')->form(), ['reason' => '']);
+        $this->client->followRedirect();
+        self::assertStringContainsString('Un motif de 1 à 255 caractères est obligatoire', $this->client->getCrawler()->filter('[data-testid="bo-flash-error"]')->text());
+
+        $this->client->submit($this->client->getCrawler()->filter('[data-reward-id="'.$reward->getId().'"] form')->form(), ['reason' => 'Fraude']);
+        $this->client->followRedirect();
+        self::assertStringContainsString('La récompense est annulée.', $this->client->getCrawler()->filter('[data-testid="bo-flash-success"]')->text());
     }
 
     public function testACancellationWithoutAReasonIsRefused(): void
