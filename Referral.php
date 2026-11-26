@@ -16,10 +16,12 @@ namespace Referral;
 
 use FlexyBundle\AccountMenu\AccountMenuItemProviderInterface;
 use Propel\Runtime\Connection\ConnectionInterface;
+use Propel\Runtime\Propel;
 use Referral\DependencyInjection\Compiler\LockedSectionProbeForTestsPass;
 use Referral\DependencyInjection\Compiler\PublicServicesForTestsPass;
 use Referral\DependencyInjection\Compiler\RegisterModuleTranslationsPass;
 use Referral\Reward\RewardIssuerInterface;
+use Referral\Reward\UnusedCouponPurger;
 use Symfony\Component\DependencyInjection\Compiler\CompilerPassInterface;
 use Symfony\Component\DependencyInjection\Compiler\PassConfig;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
@@ -28,6 +30,7 @@ use Thelia\Core\Install\Database;
 use Thelia\Model\LangQuery;
 use Thelia\Model\Message;
 use Thelia\Model\MessageQuery;
+use Thelia\Model\ModuleConfigQuery;
 use Thelia\Module\BaseModule;
 
 /**
@@ -73,14 +76,22 @@ class Referral extends BaseModule
      */
     public function postActivation(?ConnectionInterface $con = null): void
     {
-        if (!self::getConfigValue('is_initialized')) {
+        // The tables decide, not the flag alone: a flag that survived a deletion must not keep the tables
+        // from being created, and tables that survived it (data kept) must not be dropped by the script.
+        if (!self::tablesExist($con ?? Propel::getConnection())) {
             $database = new Database($con);
             $database->insertSql(null, [__DIR__.'/Config/thelia.sql']);
-            self::setConfigValue('is_initialized', '1');
         }
+
+        self::setConfigValue('is_initialized', '1');
 
         $this->ensureSettings();
         $this->ensureMessages($con);
+    }
+
+    private static function tablesExist(ConnectionInterface $connection): bool
+    {
+        return false !== $connection->query("SHOW TABLES LIKE 'referral_reward'")->fetchColumn();
     }
 
     /**
@@ -139,13 +150,35 @@ class Referral extends BaseModule
         }
     }
 
+    /**
+     * The messages always go: they are the module's own text. With `$deleteModuleData` (the box of the
+     * deletion dialog), the data goes too, in the order the foreign keys ask for: the coupons that were
+     * never used (found through the rewards, so before the tables are dropped), the settings, then the
+     * tables. `is_initialized` goes with the settings, so a reinstall creates the tables again. A coupon
+     * that was used stays: the orders carry its code.
+     *
+     * Without it, tables, settings and coupons are kept together, `is_initialized` included: a reinstall
+     * finds the program as it was.
+     */
     public function destroy(?ConnectionInterface $con = null, $deleteModuleData = false): void
     {
         foreach ([self::MESSAGE_SPONSOR_REWARD] as $name) {
             MessageQuery::create()->findOneByName($name)?->delete($con);
         }
 
-        $database = new Database($con);
+        if (!$deleteModuleData) {
+            return;
+        }
+
+        $connection = $con ?? Propel::getConnection();
+
+        if (self::tablesExist($connection)) {
+            UnusedCouponPurger::deleteAllUnused($connection);
+        }
+
+        ModuleConfigQuery::create()->filterByModuleId(self::getModuleId())->delete($connection);
+
+        $database = new Database($connection);
         $database->insertSql(null, [__DIR__.'/Config/destroy.sql']);
     }
 

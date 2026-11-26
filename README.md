@@ -10,7 +10,8 @@ Requires Thelia 3.4.0 or later. Place the module in `local/modules/Referral`, th
     php bin/console module:refresh
     php bin/console module:activate Referral
 
-Tables `referral_code`, `referral` and `referral_reward` are created on first activation and dropped on uninstall.
+Tables `referral_code`, `referral` and `referral_reward` are created on activation when they are missing, and
+dropped on deletion when the merchant ticks "Also delete the data created by this module" (see Uninstall).
 
 ## Settings
 
@@ -71,3 +72,28 @@ row, before counting. `Tests/Integration/Concurrency` proves it with two process
   UPDATE (a viewer sees neither the save button nor the cancel forms, and the routes answer 403).
 
 Translations: domain `referral.bo.default` (`I18n/backOffice/default`).
+
+## Personal data (GDPR)
+
+`Referral\Privacy\ReferralPersonalDataProvider` adds a `referral` section to the customer export: the code, the
+friends they sponsored (first name, sign-up date, status), their own sign-up as a referee and their rewards.
+On anonymization a sponsor's code is deactivated (nobody can sign up with it again; the rewards of the friends
+already referred stay valid). A referee's referral row stays: it holds ids, a status and dates only, and is what the
+sponsor's statistics are made of.
+
+## Purge of expired coupons
+
+    php bin/console referral:purge-expired-coupons [--dry-run]
+
+Deletes, in batches, the coupons issued by the module that are expired and were never used (no
+`coupon_customer_count` row, not flagged used). The reward keeps its `coupon_code`; `coupon_id` becomes null.
+`--dry-run` only counts. The command is declared on the `thelia` schedule (`0 3 * * *`), run by
+`messenger:consume scheduler_thelia`.
+
+## Uninstall
+
+The message is always removed. With the "delete the data" box ticked, the coupons issued by the module that were
+never used are deleted (used ones stay: orders carry their code), then the settings (`is_initialized` included),
+then the tables: a reinstall starts from scratch. Without the box, tables and coupons stay; the core removes the
+module settings with the module, and activating the module again keeps the existing tables (their presence, not the
+`is_initialized` flag, decides whether `Config/thelia.sql` runs) and restores the default settings.
