@@ -1,0 +1,18 @@
+{% set reward = reward_value_type == 'percent'
+    ? format_number(reward_value, 0, null, null, locale) ~ ' %'
+    : format_money(reward_value, currency_id, locale, null, null, null, true) -%}
+{{ 'Hello,'|trans({}, 'referral.email.default', locale) }}
+
+{{ '%name%, whom you referred, has placed a first order. Thank you!'|trans({'%name%': referee_firstname}, 'referral.email.default', locale) }}
+
+{{ 'Your reward: %reward% off your next order, with the code below.'|trans({'%reward%': reward}, 'referral.email.default', locale) }}
+
+{{ coupon_code }}
+
+{% if minimum_amount > 0 %}{{ 'For an order of at least %amount%.'|trans({'%amount%': format_money(minimum_amount, currency_id, locale, null, null, null, true)}, 'referral.email.default', locale) }}
+{% endif %}
+{% if expiration_date %}{{ 'Valid until %date%, for one use.'|trans({'%date%': format_date(expiration_date, 'date', null, locale)}, 'referral.email.default', locale) }}
+{% endif %}
+
+{{ 'Kind regards'|trans({}, 'referral.email.default', locale) }},
+{{ 'The %store% team.'|trans({'%store%': config('store_name')}, 'referral.email.default', locale) }}

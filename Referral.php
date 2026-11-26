@@ -23,6 +23,9 @@ use Symfony\Component\DependencyInjection\Compiler\PassConfig;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ServicesConfigurator;
 use Thelia\Core\Install\Database;
+use Thelia\Model\LangQuery;
+use Thelia\Model\Message;
+use Thelia\Model\MessageQuery;
 use Thelia\Module\BaseModule;
 
 /**
@@ -32,6 +35,8 @@ use Thelia\Module\BaseModule;
 class Referral extends BaseModule
 {
     public const MESSAGE_DOMAIN = 'referral';
+
+    public const MESSAGE_SPONSOR_REWARD = 'referral_sponsor_reward';
 
     public const CONFIG_ENABLED = 'enabled';
     public const CONFIG_REFEREE_VALUE_TYPE = 'referee_value_type';
@@ -73,6 +78,7 @@ class Referral extends BaseModule
         }
 
         $this->ensureSettings();
+        $this->ensureMessages($con);
     }
 
     /**
@@ -88,8 +94,55 @@ class Referral extends BaseModule
         }
     }
 
+    /**
+     * Creates the messages of the module, and gives the ones that already exist the languages of the shop
+     * they lack: a title or a subject that is there is kept. The text of a message is its template,
+     * `templates/email/default/<name>.html.twig` and `.txt.twig`; its subject is compiled by Twig.
+     *
+     * @throws \Propel\Runtime\Exception\PropelException
+     */
+    private function ensureMessages(?ConnectionInterface $con = null): void
+    {
+        $messages = [
+            self::MESSAGE_SPONSOR_REWARD => [
+                'referral-sponsor-reward.html', 'referral-sponsor-reward.txt',
+                ['Referral - Sponsor reward', 'Parrainage - Récompense du parrain'],
+                ['{{ referee_firstname }} placed a first order: here is your reward', '{{ referee_firstname }} a passé une première commande : voici votre récompense'],
+            ],
+        ];
+
+        foreach ($messages as $name => [$htmlTemplate, $textTemplate, $titles, $subjects]) {
+            $message = MessageQuery::create()->findOneByName($name) ?? (new Message())
+                ->setName($name)
+                ->setHtmlTemplateFileName($htmlTemplate)
+                ->setTextTemplateFileName($textTemplate)
+                ->setSecured(0);
+
+            foreach (LangQuery::create()->find($con) as $lang) {
+                $locale = $lang->getLocale();
+                $index = str_starts_with($locale, 'fr') ? 1 : 0;
+
+                $message->setLocale($locale);
+
+                if ('' === trim((string) $message->getTitle())) {
+                    $message->setTitle($titles[$index]);
+                }
+
+                if ('' === trim((string) $message->getSubject())) {
+                    $message->setSubject($subjects[$index]);
+                }
+            }
+
+            $message->save($con);
+        }
+    }
+
     public function destroy(?ConnectionInterface $con = null, $deleteModuleData = false): void
     {
+        foreach ([self::MESSAGE_SPONSOR_REWARD] as $name) {
+            MessageQuery::create()->findOneByName($name)?->delete($con);
+        }
+
         $database = new Database($con);
         $database->insertSql(null, [__DIR__.'/Config/destroy.sql']);
     }
