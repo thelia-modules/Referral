@@ -15,6 +15,7 @@ declare(strict_types=1);
 namespace Referral;
 
 use Propel\Runtime\Connection\ConnectionInterface;
+use Referral\DependencyInjection\Compiler\LockedSectionProbeForTestsPass;
 use Referral\DependencyInjection\Compiler\PublicServicesForTestsPass;
 use Referral\DependencyInjection\Compiler\RegisterModuleTranslationsPass;
 use Referral\Reward\RewardIssuerInterface;
@@ -157,6 +158,7 @@ class Referral extends BaseModule
     {
         return [
             [new RegisterModuleTranslationsPass(__DIR__, self::MESSAGE_DOMAIN), PassConfig::TYPE_BEFORE_OPTIMIZATION],
+            [new LockedSectionProbeForTestsPass(), PassConfig::TYPE_BEFORE_OPTIMIZATION],
             [new PublicServicesForTestsPass(), PassConfig::TYPE_BEFORE_REMOVING],
         ];
     }
