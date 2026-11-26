@@ -14,6 +14,7 @@ declare(strict_types=1);
 
 namespace Referral\Tests\Integration;
 
+use Propel\Runtime\Exception\PropelException;
 use Referral\EventListeners\AttachReferralListener;
 use Referral\EventListeners\RegisterFormListener;
 use Referral\Model\Referral as ReferralModel;
@@ -21,7 +22,6 @@ use Referral\Model\ReferralCodeQuery;
 use Referral\Model\ReferralQuery;
 use Referral\Model\ReferralReward;
 use Referral\Model\ReferralRewardQuery;
-use Propel\Runtime\Exception\PropelException;
 use Referral\Referral;
 use Referral\Reward\CouponRewardIssuer;
 use Referral\Service\ReferralCodeProvider;

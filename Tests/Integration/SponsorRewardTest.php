@@ -146,7 +146,7 @@ final class SponsorRewardTest extends ActionIntegrationTestCase
         // Paid without any event: the review below is the first one to see it.
         $order->setStatusId($paid->getId())->save();
 
-        $failingIssuer = new class() implements RewardIssuerInterface {
+        $failingIssuer = new class implements RewardIssuerInterface {
             public function supports(string $rewardType): bool
             {
                 return true;
