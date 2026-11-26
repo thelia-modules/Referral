@@ -107,8 +107,11 @@ final readonly class AttachReferralListener implements EventSubscriberInterface
             $connection->commit();
         } catch (PropelException $exception) {
             $connection->rollBack();
-            // Most likely the unique index of the referee: this account already has its sponsor.
-            Tlog::getInstance()->info('Referral: the account could not be attached ('.$exception::class.')');
+            if (self::isTheRefereeAlreadyAttached($exception)) {
+                Tlog::getInstance()->info('Referral: the account #'.$customer->getId().' already has its sponsor');
+            } else {
+                Tlog::getInstance()->error('Referral: attaching the account #'.$customer->getId().' failed (code '.self::sqlStateOf($exception).', '.$exception::class.': '.$exception->getMessage().')');
+            }
 
             return;
         } catch (\Throwable $exception) {
@@ -121,5 +124,33 @@ final readonly class AttachReferralListener implements EventSubscriberInterface
         if ($request->hasSession()) {
             $request->getSession()->remove(ReferralLinkController::SESSION_KEY);
         }
+    }
+
+    /**
+     * True for the violation of the unique index on the referee only: SQLSTATE 23000 on
+     * `referral_referee_customer_id_unique`. Any other failure, even another integrity one, is an error.
+     */
+    public static function isTheRefereeAlreadyAttached(\Throwable $exception): bool
+    {
+        for ($current = $exception; null !== $current; $current = $current->getPrevious()) {
+            if ($current instanceof \PDOException
+                && '23000' === self::sqlStateOf($current)
+                && str_contains($current->getMessage(), 'referral_referee_customer_id_unique')) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static function sqlStateOf(\Throwable $exception): string
+    {
+        for ($current = $exception; null !== $current; $current = $current->getPrevious()) {
+            if ($current instanceof \PDOException) {
+                return (string) ($current->errorInfo[0] ?? $current->getCode());
+            }
+        }
+
+        return (string) $exception->getCode();
     }
 }

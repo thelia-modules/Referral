@@ -17,9 +17,11 @@ namespace Referral\Tests\Integration;
 use Referral\EventListeners\AttachReferralListener;
 use Referral\EventListeners\RegisterFormListener;
 use Referral\Model\Referral as ReferralModel;
+use Referral\Model\ReferralCodeQuery;
 use Referral\Model\ReferralQuery;
 use Referral\Model\ReferralReward;
 use Referral\Model\ReferralRewardQuery;
+use Propel\Runtime\Exception\PropelException;
 use Referral\Referral;
 use Referral\Reward\CouponRewardIssuer;
 use Referral\Service\ReferralCodeProvider;
@@ -160,6 +162,33 @@ final class AttachReferralTest extends ActionIntegrationTestCase
         self::assertSame(1, ReferralQuery::create()->filterByRefereeCustomerId($referee->getId())->count());
         self::assertSame($first, CustomerQuery::create()->findPk($referee->getId())?->getSponsor());
         self::assertSame(1, ReferralRewardQuery::create()->filterByCustomerId($referee->getId())->count());
+    }
+
+    public function testOnlyTheUniqueIndexOfTheRefereeCountsAsAnAlreadyAttachedAccount(): void
+    {
+        [$sponsor, $code] = $this->sponsorWithCode();
+        $referee = $this->factory->customer($this->factory->customerTitle());
+        $codeId = ReferralCodeQuery::create()->findOneByCode($code)?->getId();
+        $save = static fn (int $sponsorId, int $refereeId): ReferralModel => (new ReferralModel())
+            ->setSponsorCustomerId($sponsorId)->setReferralCodeId($codeId)->setRefereeCustomerId($refereeId)->setStatus('registered');
+        $save($sponsor->getId(), $referee->getId())->save();
+
+        try {
+            $save($sponsor->getId(), $referee->getId())->save();
+            self::fail('the unique index of the referee refuses a second referral');
+        } catch (PropelException $exception) {
+            self::assertTrue(AttachReferralListener::isTheRefereeAlreadyAttached($exception), 'the referee twice');
+        }
+
+        // Another integrity violation (23000 as well): the referee does not exist.
+        try {
+            $save($sponsor->getId(), 2147483000)->save();
+            self::fail('the foreign key refuses an unknown referee');
+        } catch (PropelException $exception) {
+            self::assertFalse(AttachReferralListener::isTheRefereeAlreadyAttached($exception), 'a foreign key');
+        }
+
+        self::assertFalse(AttachReferralListener::isTheRefereeAlreadyAttached(new \RuntimeException('Duplicate entry for referral_referee_customer_id_unique')));
     }
 
     public function testAPostedCustomerIdOrNoCodeAttachesNothing(): void
