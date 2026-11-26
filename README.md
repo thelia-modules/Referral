@@ -34,6 +34,23 @@ amounts 0 or more, the coupon validity at least 1 day, the monthly cap 0 or more
 | `cancel_on_refund` | 1 | Cancel rewards when the trigger order is refunded |
 | `same_address_check` | 0 | Refuse referrals sharing the sponsor's address |
 
+## Behaviour to know
+
+- **Sign-up attachment** works only through the Flexy registration form (`flexybundle_form_customer_register_form`):
+  the code is read from that posted form. An account created elsewhere (API, back office, another form) is never
+  attached.
+- **Code-check limiter**: the check of a typed code is limited per client IP (`referral_code_check`, 10 tries per 15
+  minutes). Behind a reverse proxy or a CDN, set `framework.trusted_proxies`, otherwise every visitor shares the
+  proxy's address and one quota.
+- **Final statuses**: `capped` and `cancelled` are final. A later status change of the referee's orders never
+  reopens such a referral.
+- **Welcome coupon**: the referee's coupon is issued at sign-up, before any paid order. The minimum cart amount
+  (`referee_minimum_amount`) is the merchant's brake against throwaway accounts: set it above 0.
+- **Failed issuance**: when a reward cannot be issued, nothing is written and the referral stays `registered`; an
+  error is logged with the referral and order ids, and the next status change of the referee's orders retries.
+- **Customer deletion**: the unused coupons of the customer's rewards are deleted with the account; used ones stay.
+- **Purge**: coupons are deleted directly in SQL, so no `COUPON_DELETE` event is dispatched.
+
 ## Sponsor reward
 
 Each status change of a referee's order (back office, API, payment module) reviews the referral. The
