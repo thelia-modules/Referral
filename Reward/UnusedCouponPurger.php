@@ -73,6 +73,27 @@ final readonly class UnusedCouponPurger
     }
 
     /**
+     * The unused coupons of the rewards one customer is the beneficiary of, expired or not: used ones stay.
+     * Called before the customer is deleted, since their rewards then go with them and these coupons
+     * could no longer be found.
+     *
+     * @return int the number of coupons deleted
+     */
+    public function purgeUnusedOf(int $customerId): int
+    {
+        $connection = Propel::getWriteConnection(ReferralRewardTableMap::DATABASE_NAME);
+        $statement = $connection->prepare(self::UNUSED_COUPON_OF_THE_MODULE.' AND rw.customer_id = :customer');
+        $statement->execute(['customer' => $customerId]);
+        $ids = array_map('intval', $statement->fetchAll(\PDO::FETCH_COLUMN));
+
+        foreach (array_chunk($ids, self::BATCH_SIZE) as $chunk) {
+            $connection->exec('DELETE FROM `coupon` WHERE id IN ('.implode(',', $chunk).')');
+        }
+
+        return \count($ids);
+    }
+
+    /**
      * Every unused coupon of the module, expired or not. Used while the module's tables still exist.
      */
     public static function deleteAllUnused(ConnectionInterface $connection): int

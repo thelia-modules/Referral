@@ -23,9 +23,12 @@ use Referral\Reward\UnusedCouponPurger;
 use Referral\Service\ReferralCodeProvider;
 use Symfony\Component\Console\Tester\CommandTester;
 use Symfony\Component\Scheduler\Attribute\AsCronTask;
+use Thelia\Core\Event\TheliaEvents;
 use Thelia\Model\Coupon;
 use Thelia\Model\CouponCustomerCount;
 use Thelia\Model\CouponQuery;
+use Thelia\Model\CustomerQuery;
+use Thelia\Model\Event\CustomerEvent;
 use Thelia\Test\ActionIntegrationTestCase;
 
 /**
@@ -120,6 +123,23 @@ final class PurgeExpiredCouponsTest extends ActionIntegrationTestCase
         self::assertNotNull(CouponQuery::create()->findPk($used->getCouponId()));
     }
 
+    public function testDeletingACustomerDeletesTheirUnusedCouponsAndKeepsTheUsedOnes(): void
+    {
+        $unused = $this->reward(expired: false);
+        $customerId = (int) $unused->getCustomerId();
+        $used = $this->anotherRewardOf($customerId);
+        (new CouponCustomerCount())->setCouponId($used->getCouponId())->setCustomerId($customerId)->setCount(1)->save();
+        $others = $this->reward(expired: false);
+
+        $customer = CustomerQuery::create()->findPk($customerId);
+        $this->dispatch(new CustomerEvent($customer), TheliaEvents::CUSTOMER_DELETEACCOUNT);
+
+        self::assertNull(CustomerQuery::create()->findPk($customerId), 'the customer is gone');
+        self::assertNull(CouponQuery::create()->findPk($unused->getCouponId()), 'unused: deleted with the customer');
+        self::assertNotNull(CouponQuery::create()->findPk($used->getCouponId()), 'used: kept');
+        self::assertNotNull(CouponQuery::create()->findPk($others->getCouponId()), 'the coupon of another customer: kept');
+    }
+
     /**
      * @param array<string, mixed> $options
      */
@@ -148,6 +168,27 @@ final class PurgeExpiredCouponsTest extends ActionIntegrationTestCase
         CouponQuery::create()->filterById($reward->getCouponId())->update([
             'ExpirationDate' => new \DateTime($expired ? '-2 days' : '+30 days'),
         ]);
+
+        return $reward;
+    }
+
+    /**
+     * A second reward of the same customer: they are the sponsor of one more referee.
+     */
+    private function anotherRewardOf(int $customerId): \Referral\Model\ReferralReward
+    {
+        $sponsor = CustomerQuery::create()->findPk($customerId);
+        $code = $this->getService(ReferralCodeProvider::class)->getOrCreateFor($sponsor);
+        $referee = $this->factory->customer($this->factory->customerTitle());
+        $referral = (new ReferralModel())
+            ->setSponsorCustomerId($customerId)
+            ->setReferralCodeId($code->getId())
+            ->setRefereeCustomerId($referee->getId())
+            ->setStatus('registered');
+        $referral->save();
+
+        $reward = $this->getService(RewardFactory::class)->sponsor($referral);
+        $this->getService(CouponRewardIssuer::class)->issue($reward, $sponsor);
 
         return $reward;
     }
