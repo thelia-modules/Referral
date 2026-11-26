@@ -13,4 +13,9 @@ declare(strict_types=1);
  */
 
 return [
+    'Referral code' => 'Code de parrainage',
+    'This referral code cannot be used.' => 'Ce code de parrainage ne peut pas être utilisé.',
+    'Too many attempts, please try again later.' => 'Trop de tentatives, veuillez réessayer plus tard.',
+    'Referral welcome offer' => 'Offre de bienvenue parrainage',
+    'Referral reward' => 'Récompense de parrainage',
 ];

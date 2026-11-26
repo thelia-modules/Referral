@@ -17,8 +17,10 @@ namespace Referral;
 use Propel\Runtime\Connection\ConnectionInterface;
 use Referral\DependencyInjection\Compiler\PublicServicesForTestsPass;
 use Referral\DependencyInjection\Compiler\RegisterModuleTranslationsPass;
+use Referral\Reward\RewardIssuerInterface;
 use Symfony\Component\DependencyInjection\Compiler\CompilerPassInterface;
 use Symfony\Component\DependencyInjection\Compiler\PassConfig;
+use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ServicesConfigurator;
 use Thelia\Core\Install\Database;
 use Thelia\Module\BaseModule;
@@ -106,8 +108,27 @@ class Referral extends BaseModule
         ];
     }
 
+    /**
+     * The referral code a visitor types is checked against the database: a budget per client keeps
+     * the form from being used to walk through the codes.
+     */
+    public static function loadConfiguration(ContainerBuilder $container): void
+    {
+        $container->loadFromExtension('framework', [
+            'rate_limiter' => [
+                'referral_code_check' => [
+                    'policy' => 'sliding_window',
+                    'limit' => 10,
+                    'interval' => '15 minutes',
+                ],
+            ],
+        ]);
+    }
+
     public static function configureServices(ServicesConfigurator $servicesConfigurator): void
     {
+        $servicesConfigurator->instanceof(RewardIssuerInterface::class)->tag('referral.reward_issuer');
+
         $servicesConfigurator->load(self::getModuleCode().'\\', __DIR__)
             ->exclude([__DIR__.'/I18n/*', __DIR__.'/Tests/*'])
             ->autowire(true)

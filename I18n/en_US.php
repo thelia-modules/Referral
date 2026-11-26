@@ -13,4 +13,9 @@ declare(strict_types=1);
  */
 
 return [
+    'Referral code' => 'Referral code',
+    'This referral code cannot be used.' => 'This referral code cannot be used.',
+    'Too many attempts, please try again later.' => 'Too many attempts, please try again later.',
+    'Referral welcome offer' => 'Referral welcome offer',
+    'Referral reward' => 'Referral reward',
 ];
