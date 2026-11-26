@@ -1,0 +1,12 @@
+{
+  "name": "thelia/referral-module",
+  "license": "GPL-3.0-or-later",
+  "type": "thelia-module",
+  "require": {
+    "thelia/installer": "^1.6",
+    "thelia/core": "^3.4"
+  },
+  "extra": {
+    "installer-name": "Referral"
+  }
+}

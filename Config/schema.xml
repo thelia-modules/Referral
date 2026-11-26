@@ -1,0 +1,95 @@
+<database defaultIdMethod="native" name="TheliaMain"
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:noNamespaceSchemaLocation="../../../../core/vendor/propel/propel/resources/xsd/database.xsd" >
+
+    <table name="referral_code" namespace="Referral\Model">
+        <column name="id" primaryKey="true" autoIncrement="true" required="true" type="INTEGER" />
+        <column name="customer_id" required="true" type="INTEGER" />
+        <column name="code" size="16" required="true" type="VARCHAR" />
+        <column name="active" required="true" defaultValue="1" type="TINYINT" />
+
+        <foreign-key foreignTable="customer" name="fk_referral_code_customer_id" onDelete="CASCADE">
+            <reference foreign="id" local="customer_id" />
+        </foreign-key>
+
+        <unique name="referral_code_customer_id_unique">
+            <unique-column name="customer_id" />
+        </unique>
+        <unique name="referral_code_code_unique">
+            <unique-column name="code" />
+        </unique>
+
+        <behavior name="timestampable" />
+    </table>
+
+    <table name="referral" namespace="Referral\Model">
+        <column name="id" primaryKey="true" autoIncrement="true" required="true" type="INTEGER" />
+        <column name="sponsor_customer_id" type="INTEGER" />
+        <column name="referral_code_id" type="INTEGER" />
+        <column name="referee_customer_id" required="true" type="INTEGER" />
+        <column name="status" size="16" required="true" defaultValue="registered" type="VARCHAR" />
+        <column name="status_reason" size="255" type="VARCHAR" />
+        <column name="trigger_order_id" type="INTEGER" />
+        <column name="rewarded_at" type="TIMESTAMP" />
+
+        <foreign-key foreignTable="customer" name="fk_referral_sponsor_customer_id" onDelete="SET NULL">
+            <reference foreign="id" local="sponsor_customer_id" />
+        </foreign-key>
+        <foreign-key foreignTable="referral_code" name="fk_referral_referral_code_id" onDelete="SET NULL">
+            <reference foreign="id" local="referral_code_id" />
+        </foreign-key>
+        <foreign-key foreignTable="customer" name="fk_referral_referee_customer_id" onDelete="CASCADE">
+            <reference foreign="id" local="referee_customer_id" />
+        </foreign-key>
+        <foreign-key foreignTable="order" name="fk_referral_trigger_order_id" onDelete="SET NULL">
+            <reference foreign="id" local="trigger_order_id" />
+        </foreign-key>
+
+        <index name="idx_referral_sponsor_customer_id">
+            <index-column name="sponsor_customer_id" />
+        </index>
+        <unique name="referral_referee_customer_id_unique">
+            <unique-column name="referee_customer_id" />
+        </unique>
+
+        <behavior name="timestampable" />
+    </table>
+
+    <table name="referral_reward" namespace="Referral\Model">
+        <column name="id" primaryKey="true" autoIncrement="true" required="true" type="INTEGER" />
+        <column name="referral_id" required="true" type="INTEGER" />
+        <column name="beneficiary" size="8" required="true" type="VARCHAR" />
+        <column name="customer_id" type="INTEGER" />
+        <column name="reward_type" size="16" required="true" defaultValue="coupon" type="VARCHAR" />
+        <column name="value_type" size="8" required="true" type="VARCHAR" />
+        <column name="value" size="16" scale="6" required="true" type="DECIMAL" />
+        <column name="minimum_amount" size="16" scale="6" required="true" defaultValue="0" type="DECIMAL" />
+        <column name="coupon_id" type="INTEGER" />
+        <column name="coupon_code" size="45" type="VARCHAR" />
+        <column name="status" size="16" required="true" defaultValue="issued" type="VARCHAR" />
+        <column name="cancel_reason" size="255" type="VARCHAR" />
+        <column name="cancelled_at" type="TIMESTAMP" />
+
+        <foreign-key foreignTable="referral" name="fk_referral_reward_referral_id" onDelete="CASCADE">
+            <reference foreign="id" local="referral_id" />
+        </foreign-key>
+        <foreign-key foreignTable="customer" name="fk_referral_reward_customer_id" onDelete="SET NULL">
+            <reference foreign="id" local="customer_id" />
+        </foreign-key>
+        <foreign-key foreignTable="coupon" name="fk_referral_reward_coupon_id" onDelete="SET NULL">
+            <reference foreign="id" local="coupon_id" />
+        </foreign-key>
+
+        <unique name="referral_reward_referral_beneficiary_unique">
+            <unique-column name="referral_id" />
+            <unique-column name="beneficiary" />
+        </unique>
+        <index name="idx_referral_reward_customer_beneficiary_created">
+            <index-column name="customer_id" />
+            <index-column name="beneficiary" />
+            <index-column name="created_at" />
+        </index>
+
+        <behavior name="timestampable" />
+    </table>
+</database>
