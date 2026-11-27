@@ -1,0 +1,90 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'Referral'|trans({}, 'referral.fo.default') }}{% endblock %}
+
+{% macro value(type, value) %}{% if type == 'percent' %}{{ value|format_number(locale: lang_code) }} %{% else %}{{ value|format_currency(current_currency_code(), locale: lang_code) }}{% endif %}{% endmacro %}
+
+{% block body %}
+    {# referral comes from the controller: one query read the friends and the rewards of the signed-in customer only. #}
+    <twig:Layouts:Subheader:Account
+        title="{{ 'Referral'|trans({}, 'referral.fo.default') }}"
+        selected="referral"
+        :breadcrumb="[
+            {title: 'My account'|trans, url: path('account_index')},
+            {title: 'Referral'|trans({}, 'referral.fo.default')},
+        ]"
+    />
+
+    <div class="container-l pt-6 pb-20 md:pt-11 md:pb-30">
+        <div class="flex flex-col w-full max-w-screen-lg gap-10 mx-auto">
+            <section class="flex flex-col gap-3" data-testid="referral-share">
+                <h2 class="h4">{{ 'Your referral code'|trans({}, 'referral.fo.default') }}</h2>
+                <p class="h3" data-testid="referral-code"><bdi>{{ referral.code }}</bdi></p>
+                <p class="paragraph-3">{{ 'Share this link with your friends: when they sign up with it and place a first order, you are both rewarded.'|trans({}, 'referral.fo.default') }}</p>
+                <label class="paragraph-3 text-grey" for="referral-link">{{ 'Your referral link'|trans({}, 'referral.fo.default') }}</label>
+                <input id="referral-link" class="Input-input w-full" type="text" readonly value="{{ referral.link }}" onfocus="this.select()" data-testid="referral-link">
+            </section>
+
+            <section class="flex flex-col gap-4" data-testid="referral-rewards">
+                <h2 class="h4">{{ 'Your rewards'|trans({}, 'referral.fo.default') }}</h2>
+                {% if referral.rewards|length %}
+                    <p class="paragraph-3" data-testid="referral-total">
+                        <span class="text-grey">{{ 'Total earned'|trans({}, 'referral.fo.default') }}</span>
+                        {% set parts = [] %}
+                        {% if referral.amountTotal > 0 %}
+                            {% set parts = parts|merge([_self.value('amount', referral.amountTotal)]) %}
+                        {% endif %}
+                        {% for group in referral.percentCounts %}
+                            {% set parts = parts|merge([group.count ~ ' × ' ~ _self.value('percent', group.value)]) %}
+                        {% endfor %}
+                        <span dir="ltr">{{ parts|join(', ') }}</span>
+                    </p>
+                    <h3 class="h5">{{ 'Your reward codes'|trans({}, 'referral.fo.default') }}</h3>
+                    <ul class="flex flex-col w-full gap-3">
+                        {% for reward in referral.rewards %}
+                            <li class="p-5 border border-grey-lighter" data-testid="referral-reward" data-state="{{ reward.state }}">
+                                <div class="flex flex-wrap items-center justify-between gap-3">
+                                    <strong><bdi>{{ reward.code }}</bdi></strong>
+                                    <twig:Molecules:Tag:Base color="{{ {used: 'neutral', expired: 'error', unused: 'success'}[reward.state] }}" customText="{{ {used: 'Used', expired: 'Expired', unused: 'Unused'}[reward.state]|trans({}, 'referral.fo.default') }}" />
+                                </div>
+                                <p class="mt-4 paragraph-3">
+                                    <span dir="ltr">{{ _self.value(reward.valueType, reward.value) }}</span>
+                                    {% if reward.expiresAt %}
+                                        <span class="text-grey">{{ 'Valid until %date%'|trans({'%date%': reward.expiresAt|format_date('long', locale: lang_code)}, 'referral.fo.default') }}</span>
+                                    {% endif %}
+                                </p>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p class="paragraph-3" data-testid="referral-rewards-empty">{{ 'No reward yet.'|trans({}, 'referral.fo.default') }}</p>
+                {% endif %}
+            </section>
+
+            <section class="flex flex-col gap-4" data-testid="referral-referees">
+                <h2 class="h4">{{ 'Your friends'|trans({}, 'referral.fo.default') }}</h2>
+                {% if referral.referees|length %}
+                    <ul class="flex flex-col w-full gap-3">
+                        {% for referee in referral.referees %}
+                            <li class="p-5 border border-grey-lighter" data-testid="referral-referee" data-state="{{ referee.state }}">
+                                <div class="flex flex-wrap items-center justify-between gap-3">
+                                    <strong><bdi>{{ referee.name }}</bdi></strong>
+                                    <twig:Molecules:Tag:Base color="{{ {signed_up: 'neutral', pending: 'warning', rewarded: 'success', capped: 'warning', cancelled: 'error'}[referee.state] }}" customText="{{ {signed_up: 'Signed up', pending: 'Reward on its way', rewarded: 'Rewarded', capped: 'Monthly limit reached', cancelled: 'Cancelled'}[referee.state]|trans({}, 'referral.fo.default') }}" />
+                                </div>
+                                {% if referee.signedUpAt %}
+                                    <p class="mt-4 paragraph-3 text-grey">{{ 'Signed up on %date%'|trans({'%date%': referee.signedUpAt|format_date('long', locale: lang_code)}, 'referral.fo.default') }}</p>
+                                {% endif %}
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p class="paragraph-3" data-testid="referral-referees-empty">{{ 'No friend has signed up with your link yet.'|trans({}, 'referral.fo.default') }}</p>
+                {% endif %}
+            </section>
+        </div>
+    </div>
+{% endblock %}
+
+{% block footer %}
+    <twig:Layouts:Footer:Checkout />
+{% endblock %}

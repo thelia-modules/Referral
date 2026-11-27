@@ -1,0 +1,132 @@
+{% extends '@BackOfficeDefaultTwig/base.html.twig' %}
+
+{% set domain = 'referral.bo.default' %}
+
+{% block title %}{{ 'Referrals'|trans({}, domain) }}{% endblock %}
+{% block body_testid %}referral-list{% endblock %}
+
+{% block breadcrumb %}
+	<nav aria-label="breadcrumb" class="mb-1">
+		<ol class="breadcrumb mb-0">
+			<li class="breadcrumb-item"><a href="{{ path('admin.home') }}">{{ 'Home'|trans }}</a></li>
+			<li class="breadcrumb-item"><a href="{{ path('admin.module.configure', {'module_code': 'Referral'}) }}">{{ 'Referral program'|trans({}, domain) }}</a></li>
+			<li class="breadcrumb-item active" aria-current="page">{{ 'Referrals'|trans({}, domain) }}</li>
+		</ol>
+	</nav>
+{% endblock %}
+
+{% macro customer(id, firstname, lastname) %}
+	{% if id is null %}-{% else %}<a href="{{ path('admin.customer.update.view', {'customer_id': id}) }}">{{ firstname }} {{ lastname }}</a>{% endif %}
+{% endmacro %}
+
+{% block content %}
+	{% set domain = 'referral.bo.default' %}
+	<div class="container-fluid" data-testid="referral-page">
+		{% embed '@BackOfficeDefaultTwig/_page_header.html.twig' with { title: 'Referrals'|trans({}, 'referral.bo.default') } %}
+			{% block actions %}
+				<a class="btn btn-outline-secondary btn-sm" href="{{ path('admin.module.configure', {'module_code': 'Referral'}) }}">{{ 'Settings'|trans({}, 'referral.bo.default') }}</a>
+			{% endblock %}
+		{% endembed %}
+
+		<div class="row g-3 mb-3" data-testid="referral-counters">
+			<div class="col-sm-4"><div class="card"><div class="card-body py-2"><div class="text-body-secondary small text-uppercase">{{ 'Referrals'|trans({}, domain) }}</div><div class="h4 mb-0" data-testid="referral-counter-referrals">{{ counters.referrals }}</div></div></div></div>
+			<div class="col-sm-4"><div class="card"><div class="card-body py-2"><div class="text-body-secondary small text-uppercase">{{ 'Rewards issued'|trans({}, domain) }}</div><div class="h4 mb-0" data-testid="referral-counter-issued">{{ counters.rewardsIssued }}</div></div></div></div>
+			<div class="col-sm-4"><div class="card"><div class="card-body py-2"><div class="text-body-secondary small text-uppercase">{{ 'Rewards cancelled'|trans({}, domain) }}</div><div class="h4 mb-0" data-testid="referral-counter-cancelled">{{ counters.rewardsCancelled }}</div></div></div></div>
+		</div>
+
+		<form method="get" class="d-flex flex-wrap align-items-center gap-2 mb-3" data-testid="referral-filter">
+			<label for="referral-status-filter" class="form-label mb-0">{{ 'Status'|trans({}, domain) }}</label>
+			<select name="status" id="referral-status-filter" class="form-select form-select-sm w-auto">
+				<option value="">{{ 'All'|trans({}, domain) }}</option>
+				{% for code in statuses %}
+					<option value="{{ code }}"{% if status == code %} selected{% endif %}>{{ _self.statusLabel(code) }}</option>
+				{% endfor %}
+			</select>
+			<button type="submit" class="btn btn-outline-secondary btn-sm">{{ 'Filter'|trans({}, domain) }}</button>
+		</form>
+
+		<div class="table-responsive">
+			<table class="table table-sm align-middle bo-table-wrap" data-testid="referral-table">
+				<thead>
+					<tr>
+						<th>{{ 'Sponsor'|trans({}, domain) }}</th>
+						<th>{{ 'Referee'|trans({}, domain) }}</th>
+						<th>{{ 'Signed up'|trans({}, domain) }}</th>
+						<th>{{ 'Status'|trans({}, domain) }}</th>
+						<th>{{ 'Order'|trans({}, domain) }}</th>
+						<th>{{ 'Rewards'|trans({}, domain) }}</th>
+					</tr>
+				</thead>
+				<tbody>
+					{% for row in rows %}
+						<tr data-testid="referral-row" data-referral-id="{{ row.id }}" data-status="{{ row.status }}">
+							<td>{{ _self.customer(row.sponsor_customer_id, row.sponsor_firstname, row.sponsor_lastname) }}</td>
+							<td>{{ _self.customer(row.referee_customer_id, row.referee_firstname, row.referee_lastname) }}</td>
+							<td>{{ row.created_at ? row.created_at|format_datetime('medium', 'short') : '' }}</td>
+							<td>
+								<span class="badge text-bg-{{ {'rewarded': 'success', 'registered': 'secondary', 'capped': 'warning', 'cancelled': 'danger'}[row.status] ?? 'secondary' }}" data-testid="referral-status">{{ _self.statusLabel(row.status) }}</span>
+								{% if row.status_reason %}
+									<div class="small text-body-secondary" data-testid="referral-reason">{{ _self.reasonLabel(row.status_reason, monthly_cap) }}</div>
+								{% endif %}
+							</td>
+							<td>
+								{% if row.trigger_order_id %}
+									<a href="{{ path('admin.order.update.view', {'order_id': row.trigger_order_id}) }}">{{ row.trigger_order_ref }}</a>
+								{% else %}-{% endif %}
+							</td>
+							<td>
+								{% for reward in row.rewards %}
+									<div class="mb-1" data-testid="referral-reward" data-reward-id="{{ reward.id }}">
+										<span class="text-uppercase small text-body-secondary">{{ (reward.beneficiary == 'sponsor' ? 'Sponsor' : 'Referee')|trans({}, domain) }}</span>
+										<code>{{ reward.coupon_code ?: '-' }}</code>
+										{{ (reward.value + 0) }}{{ reward.value_type == 'percent' ? ' %' : ' ' ~ currency_symbol }}
+										<span class="badge text-bg-{{ reward.status == 'issued' ? 'success' : 'danger' }}" data-testid="referral-reward-status">{{ (reward.status == 'issued' ? 'Issued' : 'Cancelled')|trans({}, domain) }}</span>
+										{% if reward.status == 'cancelled' and reward.cancel_reason %}
+											<div class="small text-body-secondary">{{ _self.reasonLabel(reward.cancel_reason, monthly_cap) }}</div>
+										{% endif %}
+										{% if reward.status == 'issued' and can_update %}
+											<form method="post" class="input-group input-group-sm mt-1" action="{{ path('referral.bo.reward.cancel', {'reward_id': reward.id}) }}">
+												<input type="hidden" name="_token" value="{{ assignToken() }}">
+												<input type="text" name="reason" class="form-control" required maxlength="255" placeholder="{{ 'Reason'|trans({}, domain) }}" aria-label="{{ 'Reason'|trans({}, domain) }}">
+												<button type="submit" class="btn btn-outline-danger" data-testid="referral-cancel">{{ 'Cancel the reward'|trans({}, domain) }}</button>
+											</form>
+										{% endif %}
+									</div>
+								{% else %}-{% endfor %}
+							</td>
+						</tr>
+					{% else %}
+						<tr><td colspan="6" class="text-center text-body-secondary">{{ 'No referral yet.'|trans({}, domain) }}</td></tr>
+					{% endfor %}
+				</tbody>
+			</table>
+		</div>
+
+		{{ component('BoPagination', {
+			route: 'referral.bo.list',
+			currentPage: current_page,
+			lastPage: pages,
+			routeParams: {status: status},
+			ariaLabel: 'Referrals pagination'|trans({}, domain),
+			testid: 'referral-pagination',
+		}) }}
+	</div>
+{% endblock %}
+
+{% macro statusLabel(code) %}
+	{%- if code == 'registered' %}{{ 'Waiting for the first order'|trans({}, 'referral.bo.default') }}
+	{%- elseif code == 'rewarded' %}{{ 'Rewarded'|trans({}, 'referral.bo.default') }}
+	{%- elseif code == 'capped' %}{{ 'Capped'|trans({}, 'referral.bo.default') }}
+	{%- elseif code == 'cancelled' %}{{ 'Cancelled'|trans({}, 'referral.bo.default') }}
+	{%- else %}{{ code }}{% endif -%}
+{% endmacro %}
+
+{% macro reasonLabel(code, cap) %}
+	{%- if code == 'monthly_cap' %}{{ 'Monthly limit reached for this sponsor (%count% per month)'|trans({'%count%': cap}, 'referral.bo.default') }}
+	{%- elseif code == 'sponsor_gone' %}{{ 'The sponsor\'s account was deleted'|trans({}, 'referral.bo.default') }}
+	{%- elseif code == 'sponsor_inactive' %}{{ 'The sponsor\'s code is inactive'|trans({}, 'referral.bo.default') }}
+	{%- elseif code == 'same_address' %}{{ 'Delivered to one of the sponsor\'s addresses'|trans({}, 'referral.bo.default') }}
+	{%- elseif code == 'order_cancelled' %}{{ 'The order that triggered the reward was cancelled'|trans({}, 'referral.bo.default') }}
+	{%- elseif code == 'order_refunded' %}{{ 'The order that triggered the reward was refunded'|trans({}, 'referral.bo.default') }}
+	{%- else %}{{ code }}{% endif -%}
+{% endmacro %}
